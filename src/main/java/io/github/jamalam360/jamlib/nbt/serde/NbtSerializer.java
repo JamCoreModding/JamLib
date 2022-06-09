@@ -41,10 +41,10 @@ public class NbtSerializer {
 
     @SuppressWarnings({"unchecked", "ConstantConditions"})
     public static NbtCompound serialize(Object obj, NbtCompound compound) {
-        BeanInfo info = BeanUtil.getBeanInfo(obj);
-        if (info == null) return compound;
+        PropertyDescriptor[] properties = BeanUtil.getPropertyDescriptors(obj);
+        if (properties == null || properties.isEmpty()) return compound;
 
-        for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
+        for (PropertyDescriptor descriptor : properties) {
             Class<?> type = descriptor.getPropertyType();
             String key = descriptor.getName();
             Object value = null;

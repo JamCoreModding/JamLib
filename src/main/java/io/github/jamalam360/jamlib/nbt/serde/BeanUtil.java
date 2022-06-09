@@ -36,8 +36,9 @@ import java.beans.Introspector;
  */
 public class BeanUtil {
     private static final Logger LOGGER = JamLib.getLogger("BeanUtil");
+    private static final Map<Class<?>, PropertyDescriptor[]> PROPERTY_DESCRIPTOR_CACHE = new HashMap<>();
 
-    public static BeanInfo getBeanInfo(Object obj) {
+    private static BeanInfo getBeanInfo(Object obj) {
         try {
             return Introspector.getBeanInfo(obj.getClass());
         } catch (IntrospectionException e) {
@@ -46,5 +47,11 @@ public class BeanUtil {
         }
 
         return null;
+    }
+
+    public static PropertyDescriptor[] getPropertyDescriptors(Object obj) {
+        if (PROPERTY_DESCRIPTOR_CACHE.hasKey(obj.getClass())) return PROPERTY_DESCRIPTOR_CACHE.get(obj.getClass());
+        PROPERTY_DESCRIPTOR_CACHE.put(obj.getClass(), getBeanInfo(obj).getPropertyDescriptors());
+        return getPropertyDescriptors(obj);
     }
 }

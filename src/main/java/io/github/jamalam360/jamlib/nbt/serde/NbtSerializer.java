@@ -26,7 +26,6 @@ package io.github.jamalam360.jamlib.nbt.serde;
 
 import net.minecraft.nbt.NbtCompound;
 
-import java.beans.BeanInfo;
 import java.beans.PropertyDescriptor;
 import java.util.List;
 import java.util.UUID;
@@ -42,7 +41,7 @@ public class NbtSerializer {
     @SuppressWarnings({"unchecked", "ConstantConditions"})
     public static NbtCompound serialize(Object obj, NbtCompound compound) {
         PropertyDescriptor[] properties = BeanUtil.getPropertyDescriptors(obj);
-        if (properties == null || properties.isEmpty()) return compound;
+        if (properties == null || properties.length == 0) return compound;
 
         for (PropertyDescriptor descriptor : properties) {
             Class<?> type = descriptor.getPropertyType();

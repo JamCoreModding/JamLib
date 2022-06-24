@@ -38,21 +38,18 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import io.github.jamalam360.jamlib.log.JamLibLogger;
 
 import java.util.UUID;
 
 public class JamLib implements ModInitializer {
-    public static Logger getLogger(String subName) {
-        return LogManager.getLogger("JamLib/" + subName);
-    }
+    public static final JamLibLogger LOGGER = JamLibLogger.getLogger("jamlib");
 
     @Override
     public void onInitialize() {
         ServerTickEvents.END_WORLD_TICK.register(TickScheduling::onEndTickServer);
 
-        getLogger("JamLibInit").info("JamLib has been initialized");
+        LOGGER.logInitialize();
 
         Registry.register(Registry.ITEM, new Identifier("e", "e"), new Item(new FabricItemSettings().group(ItemGroup.TOOLS)) {
             @Override

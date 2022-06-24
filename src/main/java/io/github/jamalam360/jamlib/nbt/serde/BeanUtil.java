@@ -25,24 +25,25 @@
 package io.github.jamalam360.jamlib.nbt.serde;
 
 import io.github.jamalam360.jamlib.JamLib;
-import org.apache.logging.log4j.Logger;
 
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Jamalam
  */
 public class BeanUtil {
-    private static final Logger LOGGER = JamLib.getLogger("BeanUtil");
     private static final Map<Class<?>, PropertyDescriptor[]> PROPERTY_DESCRIPTOR_CACHE = new HashMap<>();
 
     private static BeanInfo getBeanInfo(Object obj) {
         try {
             return Introspector.getBeanInfo(obj.getClass());
         } catch (IntrospectionException e) {
-            LOGGER.error("Failed to serialize object: " + e.getMessage());
+            JamLib.LOGGER.error("Failed to get bean info: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -50,7 +51,7 @@ public class BeanUtil {
     }
 
     public static PropertyDescriptor[] getPropertyDescriptors(Object obj) {
-        if (PROPERTY_DESCRIPTOR_CACHE.hasKey(obj.getClass())) return PROPERTY_DESCRIPTOR_CACHE.get(obj.getClass());
+        if (PROPERTY_DESCRIPTOR_CACHE.containsKey(obj.getClass())) return PROPERTY_DESCRIPTOR_CACHE.get(obj.getClass());
         PROPERTY_DESCRIPTOR_CACHE.put(obj.getClass(), getBeanInfo(obj).getPropertyDescriptors());
         return getPropertyDescriptors(obj);
     }

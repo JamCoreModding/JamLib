@@ -28,6 +28,7 @@ import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import io.github.jamalam360.jamlib.JamLib;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
@@ -37,17 +38,15 @@ import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ScreenTexts;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.LiteralText;
+import net.minecraft.text.ScreenTexts;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Formatting;
 
 import java.awt.*;
@@ -96,7 +95,7 @@ public abstract class JamLibConfig {
         String tempValue;
         boolean inLimits = true;
         String id;
-        TranslatableText name;
+        Text name;
         int index;
         ClickableWidget colorButton;
     }
@@ -109,6 +108,8 @@ public abstract class JamLibConfig {
     public static void init(String modid, Class<?> config) {
         path = FabricLoader.getInstance().getConfigDir().resolve(modid + ".json");
         configClass.put(modid, config);
+
+        JamLib.LOGGER.info("Registered config for " + modid);
 
         for (Field field : config.getFields()) {
             EntryInfo info = new EntryInfo();
@@ -145,7 +146,7 @@ public abstract class JamLibConfig {
         info.id = modid;
 
         if (e != null) {
-            if (!e.name().equals("")) info.name = new TranslatableText(e.name());
+            if (!e.name().equals("")) info.name = Text.translatable(e.name());
             if (type == int.class) textField(info, Integer::parseInt, INTEGER_ONLY, (int) e.min(), (int) e.max(), true);
             else if (type == float.class)
                 textField(info, Float::parseFloat, DECIMAL_ONLY, (float) e.min(), (float) e.max(), false);
@@ -154,14 +155,14 @@ public abstract class JamLibConfig {
                 info.max = e.max() == Double.MAX_VALUE ? Integer.MAX_VALUE : (int) e.max();
                 textField(info, String::length, null, Math.min(e.min(), 0), Math.max(e.max(), 1), true);
             } else if (type == boolean.class) {
-                Function<Object, Text> func = value -> new LiteralText((Boolean) value ? "True" : "False").formatted((Boolean) value ? Formatting.GREEN : Formatting.RED);
+                Function<Object, Text> func = value -> Text.literal((Boolean) value ? "True" : "False").formatted((Boolean) value ? Formatting.GREEN : Formatting.RED);
                 info.widget = new AbstractMap.SimpleEntry<ButtonWidget.PressAction, Function<Object, Text>>(button -> {
                     info.value = !(Boolean) info.value;
                     button.setMessage(func.apply(info.value));
                 }, func);
             } else if (type.isEnum()) {
                 List<?> values = Arrays.asList(field.getType().getEnumConstants());
-                Function<Object, Text> func = value -> new TranslatableText(modid + ".jamlibconfig." + "enum." + type.getSimpleName() + "." + info.value.toString());
+                Function<Object, Text> func = value -> Text.translatable(modid + ".jamlibconfig." + "enum." + type.getSimpleName() + "." + info.value.toString());
                 info.widget = new AbstractMap.SimpleEntry<ButtonWidget.PressAction, Function<Object, Text>>(button -> {
                     int index = values.indexOf(info.value) + 1;
                     info.value = values.get(index >= values.size() ? 0 : index);
@@ -184,7 +185,7 @@ public abstract class JamLibConfig {
             if (!(isNumber && s.isEmpty()) && !s.equals("-") && !s.equals(".")) {
                 value = f.apply(s);
                 inLimits = value.doubleValue() >= min && value.doubleValue() <= max;
-                info.error = inLimits ? null : new AbstractMap.SimpleEntry<>(t, new LiteralText(value.doubleValue() < min ?
+                info.error = inLimits ? null : new AbstractMap.SimpleEntry<>(t, Text.literal(value.doubleValue() < min ?
                         "§cMinimum " + (isNumber ? "value" : "length") + (cast ? " is " + (int) min : " is " + min) :
                         "§cMaximum " + (isNumber ? "value" : "length") + (cast ? " is " + (int) max : " is " + max)));
             }
@@ -205,7 +206,7 @@ public abstract class JamLibConfig {
                 if (!s.contains("#")) s = '#' + s;
                 if (!HEXADECIMAL_ONLY.matcher(s).matches()) return false;
                 try {
-                    info.colorButton.setMessage(new LiteralText("⬛").setStyle(Style.EMPTY.withColor(Color.decode(info.tempValue).getRGB())));
+                    info.colorButton.setMessage(Text.literal("⬛").setStyle(Style.EMPTY.withColor(Color.decode(info.tempValue).getRGB())));
                 } catch (Exception ignored) {
                 }
             }
@@ -231,7 +232,7 @@ public abstract class JamLibConfig {
     @Environment(EnvType.CLIENT)
     private static class MidnightConfigScreen extends Screen {
         protected MidnightConfigScreen(Screen parent, String modid) {
-            super(new TranslatableText(modid + ".jamlibconfig." + "title"));
+            super(Text.translatable(modid + ".jamlibconfig." + "title"));
             this.parent = parent;
             this.modid = modid;
             this.translationPrefix = modid + ".jamlibconfig.";
@@ -299,8 +300,8 @@ public abstract class JamLibConfig {
             this.addSelectableChild(this.list);
             for (EntryInfo info : entries) {
                 if (info.id.equals(modid)) {
-                    TranslatableText name = Objects.requireNonNullElseGet(info.name, () -> new TranslatableText(translationPrefix + info.field.getName()));
-                    ButtonWidget resetButton = new ButtonWidget(width - 205, 0, 40, 20, new LiteralText("Reset").formatted(Formatting.RED), (button -> {
+                    Text name = Objects.requireNonNullElseGet(info.name, () -> Text.translatable(translationPrefix + info.field.getName()));
+                    ButtonWidget resetButton = new ButtonWidget(width - 205, 0, 40, 20, Text.translatable("Reset").formatted(Formatting.RED), (button -> {
                         info.value = info.defaultValue;
                         info.tempValue = info.defaultValue.toString();
                         info.index = 0;
@@ -313,7 +314,7 @@ public abstract class JamLibConfig {
                     if (info.widget instanceof Map.Entry) {
                         Map.Entry<ButtonWidget.PressAction, Function<Object, Text>> widget = (Map.Entry<ButtonWidget.PressAction, Function<Object, Text>>) info.widget;
                         if (info.field.getType().isEnum())
-                            widget.setValue(value -> new TranslatableText(translationPrefix + "enum." + info.field.getType().getSimpleName() + "." + info.value.toString()));
+                            widget.setValue(value -> Text.translatable(translationPrefix + "enum." + info.field.getType().getSimpleName() + "." + info.value.toString()));
                         this.list.addButton(List.of(new ButtonWidget(width - 160, 0, 150, 20, widget.getValue().apply(info.value), widget.getKey()), resetButton), name);
                     } else if (info.field.getType() == List.class) {
                         if (!reload) info.index = 0;
@@ -325,8 +326,8 @@ public abstract class JamLibConfig {
                         Predicate<String> processor = ((BiFunction<TextFieldWidget, ButtonWidget, Predicate<String>>) info.widget).apply(widget, done);
                         widget.setTextPredicate(processor);
                         resetButton.setWidth(20);
-                        resetButton.setMessage(new LiteralText("R").formatted(Formatting.RED));
-                        ButtonWidget cycleButton = new ButtonWidget(width - 185, 0, 20, 20, new LiteralText(String.valueOf(info.index)).formatted(Formatting.GOLD), (button -> {
+                        resetButton.setMessage(Text.literal("R").formatted(Formatting.RED));
+                        ButtonWidget cycleButton = new ButtonWidget(width - 185, 0, 20, 20, Text.literal(String.valueOf(info.index)).formatted(Formatting.GOLD), (button -> {
                             ((List<String>) info.value).remove("");
                             double scrollAmount = list.getScrollAmount();
                             this.reload = true;
@@ -344,11 +345,11 @@ public abstract class JamLibConfig {
                         widget.setTextPredicate(processor);
                         if (info.field.getAnnotation(Entry.class).isColor()) {
                             resetButton.setWidth(20);
-                            resetButton.setMessage(new LiteralText("R").formatted(Formatting.RED));
-                            ButtonWidget colorButton = new ButtonWidget(width - 185, 0, 20, 20, new LiteralText("⬛"), (button -> {
+                            resetButton.setMessage(Text.literal("R").formatted(Formatting.RED));
+                            ButtonWidget colorButton = new ButtonWidget(width - 185, 0, 20, 20, Text.literal("⬛"), (button -> {
                             }));
                             try {
-                                colorButton.setMessage(new LiteralText("⬛").setStyle(Style.EMPTY.withColor(Color.decode(info.tempValue).getRGB())));
+                                colorButton.setMessage(Text.literal("⬛").setStyle(Style.EMPTY.withColor(Color.decode(info.tempValue).getRGB())));
                             } catch (Exception ignored) {
                             }
                             info.colorButton = colorButton;
@@ -373,7 +374,7 @@ public abstract class JamLibConfig {
                     if (list.getHoveredButton(mouseX, mouseY).isPresent()) {
                         ClickableWidget buttonWidget = list.getHoveredButton(mouseX, mouseY).get();
                         Text text = ButtonEntry.buttonsWithText.get(buttonWidget);
-                        TranslatableText name = new TranslatableText(this.translationPrefix + info.field.getName());
+                        Text name = Text.translatable(this.translationPrefix + info.field.getName());
                         String key = translationPrefix + info.field.getName() + ".tooltip";
 
                         if (info.error != null && text.equals(name))
@@ -381,7 +382,7 @@ public abstract class JamLibConfig {
                         else if (I18n.hasTranslation(key) && text.equals(name)) {
                             List<Text> list = new ArrayList<>();
                             for (String str : I18n.translate(key).split("\n"))
-                                list.add(new LiteralText(str));
+                                list.add(Text.literal(str));
                             renderTooltip(matrices, list, mouseX, mouseY);
                         }
                     }
@@ -475,7 +476,6 @@ public abstract class JamLibConfig {
         boolean isColor() default false;
     }
 
-    @SuppressWarnings("unused")
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public @interface Client {
